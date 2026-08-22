@@ -1,0 +1,82 @@
+name: Build and deploy to Wodby 1
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wodby-1-${{ vars.WODBY_INSTANCE_UUID }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    env:
+      WODBY_API_KEY: ${{ secrets.WODBY_API_KEY }}
+      WODBY_INSTANCE_UUID: b80afc2c-0467-4fb8-ae3d-53961a1c325d
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Restore Composer cache
+        id: composer-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-v1-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-v1-${{ runner.os }}-
+            composer-v1-
+
+      - name: Install Wodby CLI
+        run: wget -qO- https://api.wodby.com/api/v1/get/cli | sh
+
+      - name: Initialize Wodby build
+        run: wodby ci init "$WODBY_INSTANCE_UUID"
+
+      - name: Fix Composer cache permissions
+        run: |
+          mkdir -p "$HOME/.composer/cache"
+
+          wodby ci run \
+            -v "$HOME/.composer:/home/wodby/.composer" \
+            --user root -- \
+            chown -R 1000:1000 /home/wodby/.composer
+
+      - name: Install Composer dependencies
+        run: |
+          wodby ci run \
+            -v "$HOME/.composer:/home/wodby/.composer" \
+            -s php -- \
+            composer install -n --no-ansi
+
+      # Restore ownership so GitHub Actions can archive the cache.
+      - name: Restore Composer cache ownership
+        if: always()
+        run: |
+          if [ -d "$HOME/.composer" ]; then
+            sudo chown -R "$(id -u):$(id -g)" "$HOME/.composer"
+          fi
+
+      - name: Save Composer cache
+        if: ${{ success() && steps.composer-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-v1-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+
+      - name: Build images
+        run: wodby ci build --from ./
+
+      - name: Release images
+        run: wodby ci release
+
+      - name: Deploy
+        run: wodby ci deploy
