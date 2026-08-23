@@ -19,6 +19,7 @@ jobs:
 
     env:
       WODBY_API_KEY: ${{ secrets.WODBY_API_KEY }}
+      WODBY_API_HOST: ${{ vars.WODBY_API_HOST }}      
       WODBY_INSTANCE_UUID: b80afc2c-0467-4fb8-ae3d-53961a1c325d
 
     steps:
