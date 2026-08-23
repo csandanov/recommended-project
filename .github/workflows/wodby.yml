@@ -42,14 +42,6 @@ jobs:
       - name: Initialize Wodby build
         run: wodby ci init "$WODBY_INSTANCE_UUID"
 
-      - name: Fix Composer cache permissions
-        run: |
-          mkdir -p "$HOME/.composer/cache"
-
-          wodby ci run \
-            -v "$HOME/.composer:/home/wodby/.composer" \
-            --user root -- \
-            chown -R 1000:1000 /home/wodby/.composer
 
       - name: Install Composer dependencies
         run: |
