@@ -20,7 +20,7 @@ jobs:
     env:
       WODBY_API_KEY: ${{ secrets.WODBY_API_KEY }}
       #WODBY_API_HOST: ${{ vars.WODBY_API_HOST }}      
-      WODBY_INSTANCE_UUID: e19527ee-ca00-4128-a644-681ebb8222bd
+      WODBY_INSTANCE_UUID: 2b8e1706-4bf0-4e13-b405-58b9bdf0af87
 
     steps:
       - name: Checkout
